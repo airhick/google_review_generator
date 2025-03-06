@@ -1,0 +1,85 @@
+[2025-03-05 17:32:32] [1/5] Starting Direct Review URL Generator
+[2025-03-05 17:32:32] [2/5] Business URL: https://www.google.com/maps/place/Eiffel+Tower/@48.8583701,2.2944813,17z/data=!3m1!4b1!4m6!3m5!1s0x47e66e2964e34e2d:0x8ddca9ee380ef7e0!8m2!3d48.8583701!4d2.2944813!16zL20vMDJqODE
+[2025-03-05 17:32:32] [3/5] Initializing Chrome browser...
+[2025-03-05 17:32:37] Error: Message: session not created: cannot connect to chrome at 127.0.0.1:50579
+from session not created: This version of ChromeDriver only supports Chrome version 134
+Current browser version is 133.0.6943.142
+Stacktrace:
+0   undetected_chromedriver             0x0000000102fcc922 undetected_chromedriver + 5843234
+1   undetected_chromedriver             0x0000000102fc45ea undetected_chromedriver + 5809642
+2   undetected_chromedriver             0x0000000102aa0dfe undetected_chromedriver + 421374
+3   undetected_chromedriver             0x0000000102ae31ae undetected_chromedriver + 692654
+4   undetected_chromedriver             0x0000000102ae210d undetected_chromedriver + 688397
+5   undetected_chromedriver             0x0000000102ad6fb8 undetected_chromedriver + 643000
+6   undetected_chromedriver             0x0000000102b2ad96 undetected_chromedriver + 986518
+7   undetected_chromedriver             0x0000000102b2a246 undetected_chromedriver + 983622
+8   undetected_chromedriver             0x0000000102b1b9b3 undetected_chromedriver + 924083
+9   undetected_chromedriver             0x0000000102ae5ec3 undetected_chromedriver + 704195
+10  undetected_chromedriver             0x0000000102ae6da1 undetected_chromedriver + 708001
+11  undetected_chromedriver             0x0000000102f94d40 undetected_chromedriver + 5614912
+12  undetected_chromedriver             0x0000000102f97773 undetected_chromedriver + 5625715
+13  undetected_chromedriver             0x0000000102f972eb undetected_chromedriver + 5624555
+14  undetected_chromedriver             0x0000000102f97bd5 undetected_chromedriver + 5626837
+15  undetected_chromedriver             0x0000000102f79cef undetected_chromedriver + 5504239
+16  undetected_chromedriver             0x0000000102f97ebc undetected_chromedriver + 5627580
+17  undetected_chromedriver             0x0000000102f6a8f4 undetected_chromedriver + 5441780
+18  undetected_chromedriver             0x0000000102fb44f8 undetected_chromedriver + 5743864
+19  undetected_chromedriver             0x0000000102fb46be undetected_chromedriver + 5744318
+20  undetected_chromedriver             0x0000000102fc41b8 undetected_chromedriver + 5808568
+21  libsystem_pthread.dylib             0x00007ff80096018b _pthread_start + 99
+22  libsystem_pthread.dylib             0x00007ff80095bae3 thread_start + 15
+
+[2025-03-05 17:32:37] Traceback (most recent call last):
+  File "/Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/direct_review_url.py", line 620, in main
+    driver = initialize_chrome_driver()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/direct_review_url.py", line 593, in initialize_chrome_driver
+    driver = uc.Chrome(options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/undetected_chromedriver/__init__.py", line 466, in __init__
+    super(Chrome, self).__init__(
+  File "/opt/anaconda3/lib/python3.12/site-packages/selenium/webdriver/chrome/webdriver.py", line 84, in __init__
+    super().__init__(
+  File "/opt/anaconda3/lib/python3.12/site-packages/selenium/webdriver/chromium/webdriver.py", line 104, in __init__
+    super().__init__(
+  File "/opt/anaconda3/lib/python3.12/site-packages/selenium/webdriver/remote/webdriver.py", line 286, in __init__
+    self.start_session(capabilities, browser_profile)
+  File "/opt/anaconda3/lib/python3.12/site-packages/undetected_chromedriver/__init__.py", line 724, in start_session
+    super(selenium.webdriver.chrome.webdriver.WebDriver, self).start_session(
+  File "/opt/anaconda3/lib/python3.12/site-packages/selenium/webdriver/remote/webdriver.py", line 378, in start_session
+    response = self.execute(Command.NEW_SESSION, parameters)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/selenium/webdriver/remote/webdriver.py", line 440, in execute
+    self.error_handler.check_response(response)
+  File "/opt/anaconda3/lib/python3.12/site-packages/selenium/webdriver/remote/errorhandler.py", line 245, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: cannot connect to chrome at 127.0.0.1:50579
+from session not created: This version of ChromeDriver only supports Chrome version 134
+Current browser version is 133.0.6943.142
+Stacktrace:
+0   undetected_chromedriver             0x0000000102fcc922 undetected_chromedriver + 5843234
+1   undetected_chromedriver             0x0000000102fc45ea undetected_chromedriver + 5809642
+2   undetected_chromedriver             0x0000000102aa0dfe undetected_chromedriver + 421374
+3   undetected_chromedriver             0x0000000102ae31ae undetected_chromedriver + 692654
+4   undetected_chromedriver             0x0000000102ae210d undetected_chromedriver + 688397
+5   undetected_chromedriver             0x0000000102ad6fb8 undetected_chromedriver + 643000
+6   undetected_chromedriver             0x0000000102b2ad96 undetected_chromedriver + 986518
+7   undetected_chromedriver             0x0000000102b2a246 undetected_chromedriver + 983622
+8   undetected_chromedriver             0x0000000102b1b9b3 undetected_chromedriver + 924083
+9   undetected_chromedriver             0x0000000102ae5ec3 undetected_chromedriver + 704195
+10  undetected_chromedriver             0x0000000102ae6da1 undetected_chromedriver + 708001
+11  undetected_chromedriver             0x0000000102f94d40 undetected_chromedriver + 5614912
+12  undetected_chromedriver             0x0000000102f97773 undetected_chromedriver + 5625715
+13  undetected_chromedriver             0x0000000102f972eb undetected_chromedriver + 5624555
+14  undetected_chromedriver             0x0000000102f97bd5 undetected_chromedriver + 5626837
+15  undetected_chromedriver             0x0000000102f79cef undetected_chromedriver + 5504239
+16  undetected_chromedriver             0x0000000102f97ebc undetected_chromedriver + 5627580
+17  undetected_chromedriver             0x0000000102f6a8f4 undetected_chromedriver + 5441780
+18  undetected_chromedriver             0x0000000102fb44f8 undetected_chromedriver + 5743864
+19  undetected_chromedriver             0x0000000102fb46be undetected_chromedriver + 5744318
+20  undetected_chromedriver             0x0000000102fc41b8 undetected_chromedriver + 5808568
+21  libsystem_pthread.dylib             0x00007ff80096018b _pthread_start + 99
+22  libsystem_pthread.dylib             0x00007ff80095bae3 thread_start + 15
+
+
+[2025-03-05 17:32:37] Process completed

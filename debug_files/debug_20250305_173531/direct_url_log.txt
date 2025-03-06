@@ -1,0 +1,10 @@
+[2025-03-05 17:35:31] [1/4] Starting Direct Review URL Generator
+[2025-03-05 17:35:31] [2/4] Business URL: https://www.google.com/maps/place/Hotel+17+-+Extended+Stay/@40.7349702,-73.989389,1052m/data=!3m2!1e3!4b1!4m9!3m8!1s0x89c2599fecd14f09:0x16d6ef14498dce24!5m2!4m1!1i2!8m2!3d40.7349703!4d-73.9845181!16s%2Fg%2F1tgwbttz?entry=ttu&g_ep=EgoyMDI1MDMwMi4wIKXMDSoASAFQAw%3D%3D
+[2025-03-05 17:35:31] [3/4] Extracted business name: Hotel 17 - Extended Stay
+[2025-03-05 17:35:31] Searching for place ID for business: Hotel 17 - Extended Stay
+[2025-03-05 17:35:32] Found place ID: ChIJCU_R7J9ZwokRJM6NSRTv1hY
+[2025-03-05 17:35:32] Place name: Hotel 17 - Extended Stay
+[2025-03-05 17:35:32] Address: 225 E 17th St, New York, NY 10003, États-Unis
+[2025-03-05 17:35:32] Generating direct review URL for place ID: ChIJCU_R7J9ZwokRJM6NSRTv1hY
+[2025-03-05 17:35:32] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJCU_R7J9ZwokRJM6NSRTv1hY
+[2025-03-05 17:35:32] Direct review URL saved to direct_review_url.txt

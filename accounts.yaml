@@ -1,0 +1,19 @@
+# Google accounts for posting reviews
+# Format:
+#   - username: your_email@gmail.com
+#     password: your_password
+#   - username: another_email@gmail.com
+#     password: another_password
+#
+# IMPORTANT: Replace the placeholder credentials below with your actual Google account
+# credentials. The script requires a valid Google account to post reviews.
+#
+# NOTE: Your login session will be saved in the chrome_profile directory,
+# so you only need to log in once. Subsequent runs will reuse the saved session.
+
+accounts:
+  - username: your_email@gmail.com
+    password: your_password_here
+# Add more accounts as needed:
+# - username: another_email@gmail.com
+#   password: another_password_here 

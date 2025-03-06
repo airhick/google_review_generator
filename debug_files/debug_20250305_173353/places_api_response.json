@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "formatted_address": "Av. Gustave Eiffel, 75007 Paris, France",
+      "name": "Tour Eiffel",
+      "place_id": "ChIJLU7jZClu5kcR4PcOOO6p3I0"
+    },
+    {
+      "formatted_address": "75007 Paris, France",
+      "name": "Jardin de la Tour Eiffel",
+      "place_id": "ChIJn5NRiJlv5kcRBmBPx90Uol0"
+    }
+  ],
+  "status": "OK"
+}

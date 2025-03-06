@@ -1,0 +1,10 @@
+[2025-03-06 09:39:25] [1/4] Starting Direct Review URL Generator
+[2025-03-06 09:39:25] [2/4] Business URL: https://www.google.com/maps/place/Irving+Farm+New+York/@40.7389252,-74.0071265,8468m/data=!3m1!1e3!4m9!1m2!2m1!1sstarbucks+new+york!3m5!1s0x89c25991a34fcf01:0xc2df329ea117385e!8m2!3d40.7296926!4d-73.9987703!16s%2Fg%2F11g9m8vnnj?entry=ttu&g_ep=EgoyMDI1MDMwMi4wIKXMDSoASAFQAw%3D%3D
+[2025-03-06 09:39:25] [3/4] Extracted business name: Irving Farm New York
+[2025-03-06 09:39:25] Searching for place ID for business: Irving Farm New York
+[2025-03-06 09:39:26] Found place ID: ChIJ99rtOstZwokRH9gPcAsftbw
+[2025-03-06 09:39:26] Place name: Irving Farm New York
+[2025-03-06 09:39:26] Address: 79 E 10th St, New York, NY 10003, Vereinigte Staaten
+[2025-03-06 09:39:26] Generating direct review URL for place ID: ChIJ99rtOstZwokRH9gPcAsftbw
+[2025-03-06 09:39:26] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJ99rtOstZwokRH9gPcAsftbw
+[2025-03-06 09:39:26] Direct review URL saved to direct_review_url.txt

@@ -1,0 +1,11 @@
+selenium==4.9.1
+selenium-stealth==1.0.6
+PyYAML==6.0.1
+# Note: torch is managed by conda 
+fake-useragent==1.4.0
+undetected-chromedriver==3.5.3  # Added for better stealth
+requests==2.31.0  # Added for API calls
+urllib3==2.0.7  # Required by requests 
+webdriver-manager==4.0.2
+nltk==3.8.1
+python-dotenv==1.0.0  # Required for loading environment variables 

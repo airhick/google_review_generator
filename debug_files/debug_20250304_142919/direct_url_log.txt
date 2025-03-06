@@ -1,0 +1,9 @@
+[2025-03-04 14:29:19] [1/4] Starting Direct Review URL Generator
+[2025-03-04 14:29:19] [2/4] Business URL: https://www.google.com/maps/place/Chez+Milo+Bar/@46.2044975,6.1216524,1934m/data=!3m2!1e3!4b1!4m6!3m5!1s0x478c64c94ab64313:0x9123b4804e731bbd!8m2!3d46.2044938!4d6.1242273!16s%2Fg%2F11hzg0vg96?entry=ttu&g_ep=EgoyMDI1MDIyNi4xIKXMDSoASAFQAw%3D%3D
+[2025-03-04 14:29:19] [3/4] Initializing Chrome browser...
+[2025-03-04 14:29:24] Extracting place ID from URL: https://www.google.com/maps/place/Chez+Milo+Bar/@46.2044975,6.1216524,1934m/data=!3m2!1e3!4b1!4m6!3m5!1s0x478c64c94ab64313:0x9123b4804e731bbd!8m2!3d46.2044938!4d6.1242273!16s%2Fg%2F11hzg0vg96?entry=ttu&g_ep=EgoyMDI1MDIyNi4xIKXMDSoASAFQAw%3D%3D
+[2025-03-04 14:29:24] Found place ID in data segment: 0x478c64c94ab64313:0x9123b4804e731bbd
+[2025-03-04 14:29:24] Formatted place ID for direct review URL: 0x478c64c94ab64313:0x9123b4804e731bbd
+[2025-03-04 14:29:24] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=0x478c64c94ab64313:0x9123b4804e731bbd
+[2025-03-04 14:29:24] Direct review URL saved to direct_review_url.txt
+[2025-03-04 14:29:24] Process completed

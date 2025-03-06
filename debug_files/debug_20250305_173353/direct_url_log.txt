@@ -1,0 +1,10 @@
+[2025-03-05 17:33:53] [1/4] Starting Direct Review URL Generator
+[2025-03-05 17:33:53] [2/4] Business URL: https://www.google.com/maps/place/Eiffel+Tower/@48.8583701,2.2944813,17z/data=!3m1!4b1!4m6!3m5!1s0x47e66e2964e34e2d:0x8ddca9ee380ef7e0!8m2!3d48.8583701!4d2.2944813!16zL20vMDJqODE
+[2025-03-05 17:33:53] [3/4] Extracted business name: Eiffel Tower
+[2025-03-05 17:33:53] Searching for place ID for business: Eiffel Tower
+[2025-03-05 17:33:53] Found place ID: ChIJLU7jZClu5kcR4PcOOO6p3I0
+[2025-03-05 17:33:53] Place name: Tour Eiffel
+[2025-03-05 17:33:53] Address: Av. Gustave Eiffel, 75007 Paris, France
+[2025-03-05 17:33:53] Generating direct review URL for place ID: ChIJLU7jZClu5kcR4PcOOO6p3I0
+[2025-03-05 17:33:53] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJLU7jZClu5kcR4PcOOO6p3I0
+[2025-03-05 17:33:53] Direct review URL saved to direct_review_url.txt
