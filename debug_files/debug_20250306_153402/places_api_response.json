@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "formatted_address": "9 Bis Rue de Lyon, 01630 Saint-Genis-Pouilly, Frankreich",
+      "name": "Bakery - Chocolaterie S\u00e9bastien Brocard",
+      "place_id": "ChIJhQvTo4BijEcRISAH3ccEcz0"
+    },
+    {
+      "formatted_address": "Centre Commercial Val Thoiry Zone du, Chem. de Pr\u00e9 Jacquet, 01710 Thoiry, Frankreich",
+      "name": "P\u00e2tisserie - Chocolaterie S\u00e9bastien Brocard",
+      "place_id": "ChIJAQAAvD6IjEcRifI8EaggG0c"
+    }
+  ],
+  "status": "OK"
+}

@@ -1,0 +1,10 @@
+[2025-03-06 15:39:40] [1/4] Starting Direct Review URL Generator
+[2025-03-06 15:39:40] [2/4] Business URL: https://www.google.com/maps/place/Lancer+de+hache+Gen%C3%A8ve+-+Axvetik/@46.200488,6.1546484,967m/data=!3m2!1e3!4b1!4m6!3m5!1s0x478c6599e5dc6701:0x3d7c75ddf510d18e!8m2!3d46.2004843!4d6.1572233!16s%2Fg%2F11ptpkvfbb?entry=ttu&g_ep=EgoyMDI1MDMwNC4wIKXMDSoASAFQAw%3D%3D
+[2025-03-06 15:39:40] [3/4] Extracted business name: Lancer de hache Gen%C3%A8ve - Axvetik
+[2025-03-06 15:39:40] Searching for place ID for business: Lancer de hache Gen%C3%A8ve - Axvetik
+[2025-03-06 15:39:40] Found place ID: ChIJAWfc5ZlljEcRjtEQ9d11fD0
+[2025-03-06 15:39:40] Place name: Lancer de hache Genève - Axvetik
+[2025-03-06 15:39:40] Address: Rue Saint-Laurent 15, 1207 Genève, Schweiz
+[2025-03-06 15:39:40] Generating direct review URL for place ID: ChIJAWfc5ZlljEcRjtEQ9d11fD0
+[2025-03-06 15:39:40] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJAWfc5ZlljEcRjtEQ9d11fD0
+[2025-03-06 15:39:40] Direct review URL saved to direct_review_url.txt

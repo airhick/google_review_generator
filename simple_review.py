@@ -39,9 +39,23 @@ def create_debug_folder():
 def load_accounts():
     """Load accounts from accounts.yaml"""
     try:
+        if not os.path.exists("accounts.yaml"):
+            print("❌ accounts.yaml file not found")
+            return []
+        
         with open("accounts.yaml", "r") as f:
-            data = yaml.safe_load(f)
-            return data.get("accounts", [])
+            accounts_data = yaml.safe_load(f)
+        
+        # Handle different possible formats of accounts.yaml
+        if isinstance(accounts_data, list):
+            # Direct list of accounts
+            return accounts_data
+        elif isinstance(accounts_data, dict) and "accounts" in accounts_data:
+            # Dictionary with "accounts" key
+            return accounts_data["accounts"]
+        else:
+            print("❌ Invalid format in accounts.yaml")
+            return []
     except Exception as e:
         print(f"❌ Error loading accounts: {str(e)}")
         return []
@@ -174,7 +188,7 @@ def login_to_google(driver, debug_folder, account_email=None):
         print(f"❌ Error in login_to_google: {str(e)}")
         return False
 
-def post_review(profile=None):
+def post_review(profile=None, rating=None, review_text=None):
     """Post a review for a business"""
     # Create debug folder
     debug_folder = create_debug_folder()
@@ -270,14 +284,14 @@ def post_review(profile=None):
             
             # Set star rating
             print("Setting star rating...")
-            star_rating_set = set_star_rating(driver, debug_folder)
+            star_rating_set = set_star_rating(driver, debug_folder, rating)
             if not star_rating_set:
                 print("❌ Failed to set star rating")
                 driver.quit()
                 return False
             
             # Enter review text
-            review_text_entered = enter_review_text(driver, debug_folder)
+            review_text_entered = enter_review_text(driver, debug_folder, review_text)
             if not review_text_entered:
                 print("❌ Failed to enter review text")
                 driver.quit()
@@ -309,40 +323,49 @@ def post_review(profile=None):
         print(f"\n❌ Error posting review: {str(e)}")
         return False
 
-def set_star_rating(driver, debug_folder):
-    """Set a 4-5 star rating"""
+def set_star_rating(driver, debug_folder, rating=None):
+    """Set star rating for the review"""
     try:
-        print("Setting star rating...")
+        # If rating is not provided, use a random 4 or 5 star rating
+        if rating is None:
+            rating = random.randint(4, 5)
         
-        # Save screenshot before setting rating
+        print(f"Setting star rating to {rating} stars...")
+        
+        # Take a screenshot before finding star rating
         screenshot_path = os.path.join(debug_folder, "before_star_rating.png")
         driver.save_screenshot(screenshot_path)
         
-        # Check if we're in an iframe
+        # First, check if we need to switch to an iframe
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
-        iframe_found = False
+        print(f"Found {len(iframes)} iframes on the page")
         
+        # Store the main window handle
+        main_window = driver.current_window_handle
+        
+        # Try to find the review iframe
+        review_iframe = None
         for iframe in iframes:
             try:
-                iframe_src = iframe.get_attribute("src")
-                if iframe_src and ("ReviewsService" in iframe_src or "writereview" in iframe_src):
+                iframe_src = iframe.get_attribute("src") or ""
+                if "ReviewsService" in iframe_src or "writereview" in iframe_src or "review" in iframe_src:
                     print(f"✅ Found review iframe for star rating: {iframe_src}")
-                    # Switch to the iframe
-                    driver.switch_to.frame(iframe)
-                    iframe_found = True
-                    
-                    # Save screenshot after switching to iframe
-                    screenshot_path = os.path.join(debug_folder, "after_iframe_switch_stars.png")
-                    driver.save_screenshot(screenshot_path)
+                    review_iframe = iframe
                     break
-            except Exception as e:
-                print(f"Error checking iframe: {str(e)}")
+            except:
+                continue
         
-        # Wait for page to load
-        time.sleep(3)
+        # Switch to the review iframe if found
+        if review_iframe:
+            driver.switch_to.frame(review_iframe)
+            print("Switched to review iframe")
+            
+            # Take a screenshot after switching to iframe
+            screenshot_path = os.path.join(debug_folder, "inside_review_iframe.png")
+            driver.save_screenshot(screenshot_path)
         
-        # Try multiple selectors for star rating elements
-        selectors = [
+        # Try multiple selectors to find star rating elements
+        star_selectors = [
             "span[aria-label*='star']",
             "div[aria-label*='star']",
             "div[role='radio'][aria-label*='star']",
@@ -358,967 +381,1137 @@ def set_star_rating(driver, debug_folder):
         star_elements = None
         used_selector = None
         
-        for selector in selectors:
-            try:
-                print(f"Trying to find star rating elements with selector: {selector}")
-                elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                if elements and len(elements) >= 5:
-                    visible_elements = [e for e in elements if e.is_displayed()]
-                    if len(visible_elements) >= 5:
-                        star_elements = visible_elements
-                        used_selector = selector
-                        print(f"✅ Found star rating elements using selector: {selector}")
-                        break
-            except Exception as e:
-                print(f"Selector {selector} failed: {str(e)}")
+        for selector in star_selectors:
+            print(f"Trying to find star rating elements with selector: {selector}")
+            elements = driver.find_elements(By.CSS_SELECTOR, selector)
+            if elements and len(elements) >= 5:
+                star_elements = elements
+                used_selector = selector
+                print(f"✅ Found star rating elements using selector: {selector}")
+                break
         
-        # If we couldn't find star elements with selectors, try JavaScript
+        # If we couldn't find star elements with CSS selectors, try JavaScript
         if not star_elements:
             print("Trying JavaScript approach to find star elements...")
-            
-            # Try to find any rating container first and click it to reveal stars
             try:
+                # Try to find the rating container first
+                rating_container = driver.find_element(By.CSS_SELECTOR, "div[role='radiogroup'], div.rating-container, div.star-rating-container")
                 print("Found rating container, trying to click it first...")
-                js_script = """
-                    // Try to find rating container
-                    let ratingContainer = document.querySelector('div[aria-label*="rating"], div[aria-label*="Rate"], div.rating-container, div.stars-container');
-                    if (ratingContainer) {
-                        ratingContainer.click();
-                        return true;
-                    }
-                    return false;
-                """
-                driver.execute_script(js_script)
-                time.sleep(1)
-            except:
-                pass
-            
-            # Try to find any clickable elements in the top section of the page
-            try:
+                try:
+                    rating_container.click()
+                except:
+                    pass
+                
+                # Try to find any clickable elements in the top section
                 print("Trying to find any clickable elements in the top section...")
-                js_script = """
-                    // Get all elements in the top half of the page
-                    const viewportHeight = window.innerHeight;
-                    const elements = Array.from(document.querySelectorAll('*'))
-                        .filter(el => {
-                            const rect = el.getBoundingClientRect();
-                            return rect.top >= 0 && rect.top < viewportHeight / 2 && 
-                                   rect.width > 0 && rect.height > 0;
-                        });
+                star_elements = driver.execute_script("""
+                    // Find all elements that look like they could be star ratings
+                    var possibleStars = [];
                     
-                    // Try to find elements that look like rating stars
-                    for (const el of elements) {
-                        const style = window.getComputedStyle(el);
-                        const text = el.textContent.toLowerCase();
-                        const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+                    // Look for elements with star-related attributes or classes
+                    document.querySelectorAll('*').forEach(function(el) {
+                        var text = (el.textContent || '').toLowerCase();
+                        var classes = (el.className || '').toLowerCase();
+                        var ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+                        var role = (el.getAttribute('role') || '').toLowerCase();
                         
                         if (
-                            (ariaLabel.includes('star') || ariaLabel.includes('rating')) ||
-                            (el.tagName === 'SVG' || el.querySelector('svg')) ||
-                            (style.cursor === 'pointer' && (el.offsetWidth === el.offsetHeight))
+                            (ariaLabel.includes('star') || classes.includes('star') || role === 'radio') &&
+                            el.offsetWidth > 0 && el.offsetHeight > 0 && // Visible elements only
+                            (el.onclick || el.parentElement.onclick) // Clickable elements
                         ) {
-                            el.click();
-                            return true;
+                            possibleStars.push(el);
                         }
-                    }
-                    return false;
-                """
-                driver.execute_script(js_script)
-                time.sleep(1)
-            except:
-                pass
-            
-            # Try to find star elements using JavaScript
-            js_script = """
-                function findStarElements() {
-                    // Try to find elements with star in aria-label
-                    let starElements = Array.from(document.querySelectorAll('*[aria-label*="star" i], *[aria-label*="rating" i]'));
-                    
-                    // Filter to only visible elements
-                    starElements = starElements.filter(el => {
-                        const rect = el.getBoundingClientRect();
-                        return rect.width > 0 && rect.height > 0;
                     });
                     
-                    if (starElements.length >= 5) {
-                        return starElements;
+                    // Group elements that are likely to be part of the same star rating component
+                    var groups = [];
+                    var currentGroup = [];
+                    var lastTop = -1;
+                    
+                    // Sort by vertical position
+                    possibleStars.sort(function(a, b) {
+                        return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                    });
+                    
+                    // Group elements that are at similar vertical positions
+                    possibleStars.forEach(function(el) {
+                        var rect = el.getBoundingClientRect();
+                        if (lastTop === -1 || Math.abs(rect.top - lastTop) < 10) {
+                            currentGroup.push(el);
+                        } else {
+                            if (currentGroup.length >= 3) { // At least 3 elements to be considered a star rating
+                                groups.push(currentGroup);
+                            }
+                            currentGroup = [el];
+                        }
+                        lastTop = rect.top;
+                    });
+                    
+                    if (currentGroup.length >= 3) {
+                        groups.push(currentGroup);
                     }
                     
-                    // Try to find elements that look like they could be stars
-                    const possibleStarElements = Array.from(document.querySelectorAll('span, div, svg, g-radio-button'))
-                        .filter(el => {
-                            // Must be visible
-                            const rect = el.getBoundingClientRect();
-                            if (rect.width === 0 || rect.height === 0) return false;
-                            
-                            // Check various properties that might indicate a star
-                            const classList = Array.from(el.classList).join(' ').toLowerCase();
-                            const id = (el.id || '').toLowerCase();
-                            const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
-                            const role = (el.getAttribute('role') || '').toLowerCase();
-                            
-                            return classList.includes('star') || 
-                                   classList.includes('rating') ||
-                                   id.includes('star') ||
-                                   id.includes('rating') ||
-                                   ariaLabel.includes('star') ||
-                                   ariaLabel.includes('rating') ||
-                                   role === 'radio';
+                    // Return the largest group, which is likely to be the star rating
+                    if (groups.length > 0) {
+                        groups.sort(function(a, b) {
+                            return b.length - a.length;
                         });
+                        return groups[0];
+                    }
                     
-                    // Group elements that are aligned horizontally and have similar size
-                    const groups = [];
-                    for (const el of possibleStarElements) {
-                        const rect = el.getBoundingClientRect();
+                    return [];
+                """)
+                
+                if star_elements and len(star_elements) >= 3:
+                    print("✅ Found star rating elements by grouping clickable elements")
+                else:
+                    # If we still can't find star elements, try to find any clickable elements in the top half of the page
+                    star_elements = driver.execute_script("""
+                        var clickableElements = [];
+                        var middleY = window.innerHeight / 3;
                         
-                        // Find a group with similar vertical position
-                        let foundGroup = false;
-                        for (const group of groups) {
-                            const groupRect = group[0].getBoundingClientRect();
-                            if (Math.abs(rect.top - groupRect.top) < 10 && 
-                                Math.abs(rect.height - groupRect.height) < 5) {
-                                group.push(el);
-                                foundGroup = true;
+                        document.querySelectorAll('*').forEach(function(el) {
+                            var rect = el.getBoundingClientRect();
+                            if (rect.top < middleY && rect.top > 0 && rect.width > 10 && rect.height > 10) {
+                                if (el.onclick || el.parentElement.onclick || 
+                                    window.getComputedStyle(el).cursor === 'pointer' ||
+                                    window.getComputedStyle(el.parentElement).cursor === 'pointer') {
+                                    clickableElements.push(el);
+                                }
+                            }
+                        });
+                        
+                        // Sort by horizontal position (left to right)
+                        clickableElements.sort(function(a, b) {
+                            return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                        });
+                        
+                        // Return elements that are likely to be in a row (similar vertical position)
+                        var result = [];
+                        var lastElement = null;
+                        
+                        for (var i = 0; i < clickableElements.length; i++) {
+                            var el = clickableElements[i];
+                            if (!lastElement || Math.abs(el.getBoundingClientRect().top - lastElement.getBoundingClientRect().top) < 10) {
+                                result.push(el);
+                                lastElement = el;
+                            }
+                            
+                            if (result.length >= 5) {
                                 break;
                             }
                         }
                         
-                        if (!foundGroup) {
-                            groups.push([el]);
+                        return result;
+                    """)
+                    
+                    if star_elements and len(star_elements) >= 3:
+                        print("✅ Found potential star rating elements in the top section of the page")
+            except Exception as e:
+                print(f"Error during JavaScript star finding: {str(e)}")
+        
+        # If we still couldn't find star elements, try to find them in a nested iframe
+        if not star_elements:
+            # Switch back to main content
+            driver.switch_to.default_content()
+            print("Switched back to main content to look for nested iframes")
+            
+            # Look for nested iframes
+            nested_iframes = driver.find_elements(By.TAG_NAME, "iframe")
+            for iframe in nested_iframes:
+                try:
+                    iframe_src = iframe.get_attribute("src") or ""
+                    if "ReviewsService" in iframe_src or "writereview" in iframe_src or "review" in iframe_src:
+                        print(f"Found nested review iframe: {iframe_src}")
+                        driver.switch_to.frame(iframe)
+                        
+                        # Take a screenshot after switching to nested iframe
+                        screenshot_path = os.path.join(debug_folder, "inside_nested_iframe.png")
+                        driver.save_screenshot(screenshot_path)
+                        
+                        # Try to find star elements again
+                        for selector in star_selectors:
+                            elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                            if elements and len(elements) >= 5:
+                                star_elements = elements
+                                used_selector = selector
+                                print(f"✅ Found star rating elements in nested iframe using selector: {selector}")
+                                break
+                        
+                        if star_elements:
+                            break
+                        else:
+                            # Switch back to main content
+                            driver.switch_to.default_content()
+                except:
+                    # Switch back to main content
+                    driver.switch_to.default_content()
+                    continue
+        
+        # If we still couldn't find star elements, try one more approach
+        if not star_elements:
+            # Switch back to main content
+            driver.switch_to.default_content()
+            print("Switched back to main content for final attempt")
+            
+            # Try to find a button or element that might reveal the star rating
+            try:
+                reveal_elements = driver.find_elements(By.CSS_SELECTOR, 
+                    "button, div[role='button'], span[role='button'], div.rating-container, div.star-rating-container")
+                
+                for element in reveal_elements:
+                    try:
+                        element_text = element.text.lower()
+                        if "rate" in element_text or "star" in element_text or "review" in element_text:
+                            print(f"Clicking element that might reveal star rating: {element_text}")
+                            element.click()
+                            time.sleep(1)
+                            
+                            # Try to find star elements again
+                            for selector in star_selectors:
+                                elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                                if elements and len(elements) >= 5:
+                                    star_elements = elements
+                                    used_selector = selector
+                                    print(f"✅ Found star rating elements after clicking reveal element, using selector: {selector}")
+                                    break
+                            
+                            if star_elements:
+                                break
+                    except:
+                        continue
+            except:
+                pass
+        
+        # If we found star elements, click the appropriate one
+        if star_elements and len(star_elements) >= rating:
+            print(f"✅ Setting {rating} star rating")
+            
+            # Take a screenshot before clicking
+            screenshot_path = os.path.join(debug_folder, "before_clicking_star.png")
+            driver.save_screenshot(screenshot_path)
+            
+            # Debug: Print information about the star elements
+            print(f"Found {len(star_elements)} star elements")
+            for i, star in enumerate(star_elements):
+                try:
+                    aria_label = star.get_attribute("aria-label") or ""
+                    print(f"Star {i+1}: aria-label='{aria_label}'")
+                except:
+                    pass
+            
+            # Try standard click first
+            try:
+                # Adjust index based on the order of stars (0-indexed or 1-indexed)
+                # Some sites have stars in reverse order
+                if used_selector and "aria-label" in used_selector:
+                    # For aria-label selectors, we can determine the correct star by the label
+                    star_found = False
+                    for star in star_elements:
+                        aria_label = star.get_attribute("aria-label") or ""
+                        # Look for exact match of the rating in the aria-label
+                        if f"{rating} star" in aria_label.lower():
+                            star.click()
+                            print(f"✅ Clicked {rating} star rating by exact aria-label match")
+                            star_found = True
+                            break
+                    
+                    if not star_found:
+                        # If we couldn't find by exact aria-label match, try by index
+                        # Ensure we're clicking the correct star (rating is 1-5, but array is 0-indexed)
+                        star_index = rating - 1
+                        if star_index < len(star_elements):
+                            star_elements[star_index].click()
+                            print(f"✅ Clicked {rating} star rating by index (0-indexed)")
+                else:
+                    # Try to determine if stars are in reverse order
+                    try:
+                        first_star_rect = star_elements[0].rect
+                        last_star_rect = star_elements[-1].rect
+                        
+                        # If the first star is to the right of the last star, they're in reverse order
+                        if first_star_rect['x'] > last_star_rect['x']:
+                            print("Stars appear to be in reverse order")
+                            # For reverse order, we need to count from the end
+                            # If rating is 5, we want the first element (index 0)
+                            # If rating is 4, we want the second element (index 1), etc.
+                            reverse_index = 5 - rating
+                            if reverse_index < len(star_elements):
+                                star_elements[reverse_index].click()
+                                print(f"✅ Clicked {rating} star rating in reverse order (index: {reverse_index})")
+                        else:
+                            # Normal order (left to right)
+                            # Ensure we're clicking the correct star (rating is 1-5, but array is 0-indexed)
+                            star_index = rating - 1
+                            if star_index < len(star_elements):
+                                star_elements[star_index].click()
+                                print(f"✅ Clicked {rating} star rating in normal order (index: {star_index})")
+                    except Exception as order_error:
+                        print(f"Error determining star order: {str(order_error)}")
+                        # Fall back to assuming normal order
+                        # Ensure we're clicking the correct star (rating is 1-5, but array is 0-indexed)
+                        star_index = rating - 1
+                        if star_index < len(star_elements):
+                            star_elements[star_index].click()
+                            print(f"✅ Clicked {rating} star rating (fallback, index: {star_index})")
+                
+                print(f"✅ Clicked {rating} star rating")
+            except Exception as e:
+                print(f"Error clicking star with standard method: {str(e)}")
+                
+                # Try JavaScript click as fallback
+                try:
+                    # Ensure we're clicking the correct star (rating is 1-5, but array is 0-indexed)
+                    star_index = rating - 1
+                    if star_index < len(star_elements):
+                        driver.execute_script("arguments[0].click();", star_elements[star_index])
+                        print(f"✅ Clicked {rating} star rating with JavaScript (index: {star_index})")
+                except Exception as e2:
+                    print(f"Error clicking star with JavaScript: {str(e2)}")
+                    
+                    # Try another JavaScript approach
+                    try:
+                        # Try a more robust JavaScript approach to find and click the exact star by rating
+                        js_script = f"""
+                        // Find all star elements
+                        var allStars = document.querySelectorAll('[aria-label*="star"], [role="radio"], .rating-star, .star-rating, [jsaction*="star"], [jsaction*="rating"]');
+                        console.log('Found ' + allStars.length + ' potential star elements');
+                        
+                        // Try to find the {rating}-star element
+                        var targetStar = null;
+                        
+                        // First try: Look for exact aria-label match
+                        for (var i = 0; i < allStars.length; i++) {{
+                            var ariaLabel = allStars[i].getAttribute('aria-label') || '';
+                            if (ariaLabel.toLowerCase().includes('{rating} star')) {{
+                                targetStar = allStars[i];
+                                console.log('Found star by exact aria-label match: ' + ariaLabel);
+                                break;
+                            }}
+                        }}
+                        
+                        // Second try: If we have exactly 5 stars, use index
+                        if (!targetStar) {{
+                            // Group stars that are at the same vertical position
+                            var starGroups = [];
+                            var currentGroup = [];
+                            var lastTop = -1;
+                            
+                            // Sort by vertical position
+                            var sortedStars = Array.from(allStars).sort(function(a, b) {{
+                                return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                            }});
+                            
+                            // Group elements that are at similar vertical positions
+                            sortedStars.forEach(function(el) {{
+                                var rect = el.getBoundingClientRect();
+                                if (lastTop === -1 || Math.abs(rect.top - lastTop) < 10) {{
+                                    currentGroup.push(el);
+                                }} else {{
+                                    if (currentGroup.length > 0) {{
+                                        starGroups.push(currentGroup);
+                                    }}
+                                    currentGroup = [el];
+                                }}
+                                lastTop = rect.top;
+                            }});
+                            
+                            if (currentGroup.length > 0) {{
+                                starGroups.push(currentGroup);
+                            }}
+                            
+                            // Find the group with 5 stars
+                            for (var i = 0; i < starGroups.length; i++) {{
+                                if (starGroups[i].length === 5) {{
+                                    // Sort by horizontal position
+                                    var horizontalSorted = starGroups[i].sort(function(a, b) {{
+                                        return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                                    }});
+                                    
+                                    // Get the star at the specified rating (0-indexed)
+                                    targetStar = horizontalSorted[{rating - 1}];
+                                    console.log('Found star by position in group of 5');
+                                    break;
+                                }}
+                            }}
+                        }}
+                        
+                        // Click the target star if found
+                        if (targetStar) {{
+                            targetStar.click();
+                            return true;
+                        }}
+                        
+                        return false;
+                        """
+                        
+                        success = driver.execute_script(js_script)
+                        if success:
+                            print(f"✅ Clicked {rating} star rating with advanced JavaScript selection")
+                        else:
+                            # Fall back to the original JavaScript event approach
+                            star_index = rating - 1
+                            if star_index < len(star_elements):
+                                driver.execute_script("""
+                                    var event = new MouseEvent('click', {
+                                        view: window,
+                                        bubbles: true,
+                                        cancelable: true
+                                    });
+                                    arguments[0].dispatchEvent(event);
+                                """, star_elements[star_index])
+                                print(f"✅ Clicked {rating} star rating with JavaScript event (index: {star_index})")
+                    except Exception as e3:
+                        print(f"Error clicking star with JavaScript event: {str(e3)}")
+                        return False
+            
+            # Take a screenshot after clicking
+            time.sleep(1)
+            screenshot_path = os.path.join(debug_folder, "after_clicking_star.png")
+            driver.save_screenshot(screenshot_path)
+            
+            # Verify that the star was selected
+            try:
+                # Check if any star has an attribute indicating it's selected
+                selected = False
+                for star in star_elements:
+                    aria_checked = star.get_attribute("aria-checked")
+                    aria_selected = star.get_attribute("aria-selected")
+                    class_name = star.get_attribute("class") or ""
+                    
+                    if (aria_checked == "true" or aria_selected == "true" or 
+                        "selected" in class_name or "checked" in class_name or
+                        "active" in class_name):
+                        selected = True
+                        break
+                
+                if not selected:
+                    print("Star selection not verified by attributes, trying again...")
+                    # Try clicking again with JavaScript
+                    # Ensure we're clicking the correct star (rating is 1-5, but array is 0-indexed)
+                    star_index = rating - 1
+                    if star_index < len(star_elements):
+                        driver.execute_script("arguments[0].click();", star_elements[star_index])
+                        time.sleep(1)
+            except:
+                pass
+            
+            return True
+        else:
+            print(f"❌ Could not find star rating elements (found {len(star_elements) if star_elements else 0})")
+            
+            # Take a screenshot of the failure
+            screenshot_path = os.path.join(debug_folder, "star_rating_failure.png")
+            driver.save_screenshot(screenshot_path)
+            
+            return False
+    except Exception as e:
+        print(f"❌ Error setting star rating: {str(e)}")
+        
+        # Take a screenshot of the error
+        screenshot_path = os.path.join(debug_folder, "star_rating_error.png")
+        driver.save_screenshot(screenshot_path)
+        
+        return False
+
+def enter_review_text(driver, debug_folder, review_text=None):
+    """Enter review text"""
+    try:
+        # Generate a review text based on rating if not provided
+        if review_text is None:
+            # Get the star rating from the page if possible
+            try:
+                star_elements = driver.find_elements(By.CSS_SELECTOR, "div[aria-checked='true'], span[aria-checked='true']")
+                if star_elements:
+                    # Try to determine the rating from the selected star
+                    aria_label = star_elements[0].get_attribute("aria-label") or ""
+                    if "1 star" in aria_label:
+                        detected_rating = 1
+                    elif "2 star" in aria_label:
+                        detected_rating = 2
+                    elif "3 star" in aria_label:
+                        detected_rating = 3
+                    elif "4 star" in aria_label:
+                        detected_rating = 4
+                    elif "5 star" in aria_label:
+                        detected_rating = 5
+                    else:
+                        # Default to 5 stars if we can't determine
+                        detected_rating = 5
+                else:
+                    # Default to 5 stars if we can't find selected stars
+                    detected_rating = 5
+            except:
+                # Default to 5 stars if there's an error
+                detected_rating = 5
+            
+            # Generate review text based on rating
+            if detected_rating == 1:
+                negative_reviews = [
+                    "Very disappointed with the service.",
+                    "Would not recommend this place at all.",
+                    "Had a terrible experience here.",
+                    "Service was extremely poor.",
+                    "Will not be returning after this experience."
+                ]
+                review_text = random.choice(negative_reviews)
+            elif detected_rating == 2:
+                poor_reviews = [
+                    "Below average experience overall.",
+                    "Several issues with the service provided.",
+                    "Not what I expected for the price.",
+                    "Staff could be more helpful.",
+                    "Needs significant improvement."
+                ]
+                review_text = random.choice(poor_reviews)
+            elif detected_rating == 3:
+                average_reviews = [
+                    "Average experience, nothing special.",
+                    "Some good points but also some issues.",
+                    "Decent service but room for improvement.",
+                    "Met basic expectations but didn't exceed them.",
+                    "Okay for the price, but wouldn't go out of my way to return."
+                ]
+                review_text = random.choice(average_reviews)
+            elif detected_rating == 4:
+                good_reviews = [
+                    "Good experience overall, would recommend.",
+                    "Very satisfied with the service provided.",
+                    "Professional staff and good quality.",
+                    "Above average experience, will return.",
+                    "Impressed with most aspects of the service."
+                ]
+                review_text = random.choice(good_reviews)
+            else:  # 5 stars
+                excellent_reviews = [
+                    "Excellent service and friendly staff!",
+                    "Outstanding experience from start to finish!",
+                    "Couldn't be happier with my experience here.",
+                    "Absolutely top-notch service, highly recommend!",
+                    "Fantastic experience, will definitely return!",
+                    "Exceeded my expectations in every way.",
+                    "Wonderful staff and excellent service!",
+                    "Best experience I've had in a long time.",
+                    "Absolutely love this place, 5 stars well deserved!",
+                    "Perfect in every way, highly recommended!"
+                ]
+                review_text = random.choice(excellent_reviews)
+        
+        print(f"Selected review text: {review_text}")
+        
+        # Take a screenshot before attempting to locate the review text area
+        screenshot_path = os.path.join(debug_folder, "before_review_text.png")
+        driver.save_screenshot(screenshot_path)
+        
+        # Switch to main content to start fresh
+        driver.switch_to.default_content()
+        print("Switched to main content to start fresh")
+        
+        # Find all iframes on the page
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        print(f"Found {len(iframes)} iframes on the page")
+        
+        # First, check if we're in a review iframe
+        review_iframe = None
+        for iframe in iframes:
+            try:
+                iframe_src = iframe.get_attribute("src") or ""
+                print(f"Checking iframe with src: {iframe_src}")
+                if "ReviewsService" in iframe_src or "writereview" in iframe_src or "review" in iframe_src:
+                    review_iframe = iframe
+                    print(f"✅ Found main review iframe: {iframe_src}")
+                    break
+            except:
+                continue
+        
+        # Switch to the review iframe if found
+        if review_iframe:
+            driver.switch_to.frame(review_iframe)
+            print("Switched to review iframe for text input")
+            
+            # Take a screenshot after switching to iframe
+            screenshot_path = os.path.join(debug_folder, "inside_review_iframe_text.png")
+            driver.save_screenshot(screenshot_path)
+        
+        # Try to find the review widget div
+        try:
+            widget_div = driver.find_element(By.CSS_SELECTOR, "div.goog-reviews-write-widget-model, div[jsmodel*='ReviewsWrite']")
+            print("Found review widget div")
+        except Exception as e:
+            print(f"Error finding widget div: {str(e)}")
+            
+            # If we couldn't find the widget div, try to find a nested iframe
+            nested_iframes = driver.find_elements(By.TAG_NAME, "iframe")
+            for iframe in nested_iframes:
+                try:
+                    iframe_src = iframe.get_attribute("src") or ""
+                    if "ReviewsService" in iframe_src or "writereview" in iframe_src or "review" in iframe_src:
+                        print(f"Found nested review iframe: {iframe_src}")
+                        driver.switch_to.frame(iframe)
+                        break
+                except:
+                    continue
+        
+        # Try to find the textarea with multiple selectors
+        textarea = None
+        textarea_selectors = [
+            "textarea[name='goog-reviews-write-widget']",
+            "form[name='goog-reviews-write-widget'] textarea",
+            "textarea[aria-label*='review']",
+            "textarea[aria-label*='Review']",
+            "textarea[placeholder*='review']",
+            "textarea[placeholder*='Review']",
+            "textarea"
+        ]
+        
+        for selector in textarea_selectors:
+            print(f"Trying to find textarea with selector: {selector}")
+            elements = driver.find_elements(By.CSS_SELECTOR, selector)
+            if elements:
+                textarea = elements[0]
+                print(f"✅ Found textarea with selector: {selector}")
+                break
+        
+        # If we couldn't find the textarea, try JavaScript
+        if not textarea:
+            print("Trying JavaScript to find textarea...")
+            try:
+                textarea = driver.execute_script("""
+                    // Try to find textarea by various methods
+                    var textarea = document.querySelector('textarea');
+                    if (textarea) return textarea;
+                    
+                    // Try to find by aria-label
+                    var elements = document.querySelectorAll('[aria-label]');
+                    for (var i = 0; i < elements.length; i++) {
+                        var el = elements[i];
+                        var label = el.getAttribute('aria-label').toLowerCase();
+                        if (label.includes('review') || label.includes('comment') || label.includes('feedback')) {
+                            if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.getAttribute('contenteditable') === 'true') {
+                                return el;
+                            }
                         }
                     }
                     
-                    // Find the group with at least 5 elements
-                    for (const group of groups) {
-                        if (group.length >= 5) {
-                            // Sort by x position
-                            group.sort((a, b) => {
-                                return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
-                            });
-                            return group;
+                    // Try to find contenteditable div
+                    var editables = document.querySelectorAll('[contenteditable="true"]');
+                    if (editables.length > 0) return editables[0];
+                    
+                    // Try to find any input that looks like it could be for reviews
+                    var inputs = document.querySelectorAll('input[type="text"], input:not([type])');
+                    for (var i = 0; i < inputs.length; i++) {
+                        var input = inputs[i];
+                        if (input.offsetWidth > 200) { // Likely a text input field
+                            return input;
                         }
                     }
                     
                     return null;
-                }
+                """)
                 
-                return findStarElements();
-            """
-            star_elements = driver.execute_script(js_script)
-            
-            if star_elements:
-                print("✅ Found star rating elements using JavaScript")
-        
-        if not star_elements:
-            # Try one more approach - look for any clickable elements in a row
-            try:
-                # Find all clickable elements
-                clickable_elements = driver.find_elements(By.CSS_SELECTOR, "div[role='button'], span[role='button'], button, div[jsaction], span[jsaction]")
-                
-                # Filter to only visible elements
-                visible_elements = [e for e in clickable_elements if e.is_displayed()]
-                
-                # Group elements that are aligned horizontally
-                groups = []
-                for element in visible_elements:
-                    location = element.location
-                    size = element.size
-                    
-                    # Find a group with similar vertical position
-                    found_group = False
-                    for group in groups:
-                        group_element = group[0]
-                        group_location = group_element.location
-                        
-                        if abs(location['y'] - group_location['y']) < 10:
-                            group.append(element)
-                            found_group = True
-                            break
-                    
-                    if not found_group:
-                        groups.append([element])
-                
-                # Find the group with at least 5 elements
-                for group in groups:
-                    if len(group) >= 5:
-                        # Sort by x position
-                        group.sort(key=lambda e: e.location['x'])
-                        star_elements = group
-                        print("✅ Found star rating elements by grouping clickable elements")
-                        break
-            except Exception as e:
-                print(f"Error grouping clickable elements: {str(e)}")
-        
-        # If we're in an iframe and still can't find star elements, try switching back to main content
-        if not star_elements and iframe_found:
-            print("Switching back to main content to look for star elements...")
-            driver.switch_to.default_content()
-            
-            # Try to find iframes again (sometimes there are nested iframes)
-            iframes = driver.find_elements(By.TAG_NAME, "iframe")
-            for iframe in iframes:
-                try:
-                    iframe_src = iframe.get_attribute("src")
-                    if iframe_src and ("ReviewsService" in iframe_src or "writereview" in iframe_src):
-                        print(f"✅ Found another review iframe: {iframe_src}")
-                        driver.switch_to.frame(iframe)
-                        
-                        # Try JavaScript again in this iframe
-                        star_elements = driver.execute_script(js_script)
-                        if star_elements:
-                            print("✅ Found star rating elements in another iframe")
-                            break
-                except:
-                    continue
-        
-        # Save screenshot after finding stars
-        screenshot_path = os.path.join(debug_folder, "after_finding_stars.png")
-        driver.save_screenshot(screenshot_path)
-        
-        if not star_elements:
-            raise Exception("Could not find star rating elements")
-        
-        # Choose a 4 or 5 star rating (80% chance of 5 stars)
-        rating = 5 if random.random() < 0.8 else 4
-        print(f"✅ Setting {rating} star rating")
-        
-        # Click the star
-        try:
-            # Get the star element (0-indexed, so subtract 1)
-            star = star_elements[rating - 1]
-            
-            # Scroll to the star to make sure it's in view
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", star)
-            time.sleep(1)
-            
-            # Try to remove any overlays that might be blocking the star
-            driver.execute_script("""
-                // Remove any overlays or modals that might be blocking clicks
-                const overlays = Array.from(document.querySelectorAll('div[aria-hidden="true"], div.overlay, div.modal-bg, div.backdrop'));
-                for (const overlay of overlays) {
-                    overlay.remove();
-                }
-            """)
-            
-            # Try regular click
-            star.click()
-            print(f"✅ Clicked {rating} star rating")
-        except Exception as e:
-            print(f"Regular click failed: {str(e)}")
-            print("Trying JavaScript click...")
-            
-            # Try JavaScript click with additional handling for overlays
-            js_click_script = """
-                // Remove any overlays first
-                const overlays = Array.from(document.querySelectorAll('div[aria-hidden="true"], div.overlay, div.modal-bg, div.backdrop'));
-                for (const overlay of overlays) {
-                    overlay.style.display = 'none';
-                    overlay.style.visibility = 'hidden';
-                    overlay.style.opacity = '0';
-                    overlay.style.pointerEvents = 'none';
-                }
-                
-                // Force the click
-                const event = new MouseEvent('click', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                });
-                arguments[0].dispatchEvent(event);
-                
-                // Also try the regular click
-                arguments[0].click();
-                
-                return true;
-            """
-            driver.execute_script(js_click_script, star)
-            print(f"✅ Clicked {rating} star rating using JavaScript")
-        
-        # Save screenshot after clicking
-        screenshot_path = os.path.join(debug_folder, "after_star_rating.png")
-        driver.save_screenshot(screenshot_path)
-        
-        # Wait a moment for any animations to complete
-        time.sleep(2)
-        
-        return True
-    except Exception as e:
-        print(f"❌ Could not set star rating: {str(e)}")
-        # Save screenshot
-        screenshot_path = os.path.join(debug_folder, "star_rating_error.png")
-        driver.save_screenshot(screenshot_path)
-        return False
-
-def enter_review_text(driver, debug_folder):
-    """Enter a random positive review text"""
-    try:
-        # Generate a random positive review
-        positive_reviews = [
-            "Excellent service and friendly staff!",
-            "Great experience overall, highly recommend!",
-            "Outstanding service and quality.",
-            "Couldn't be happier with my experience here.",
-            "Top-notch service, will definitely return!",
-            "Fantastic place with amazing staff.",
-            "Exceeded my expectations in every way.",
-            "Wonderful experience from start to finish.",
-            "Absolutely love this place, highly recommended!",
-            "Superb service and attention to detail."
-        ]
-        review_text = random.choice(positive_reviews)
-        print(f"Selected review text: {review_text}")
-        
-        # Save screenshot before looking for text area
-        screenshot_path = os.path.join(debug_folder, "before_finding_text_area.png")
-        driver.save_screenshot(screenshot_path)
-        
-        # First switch back to the main content
-        try:
-            driver.switch_to.default_content()
-            print("Switched to main content to start fresh")
-        except:
-            pass
-        
-        # Based on the HTML structure, we need to find the correct iframe
-        # First, look for the main review iframe with class="review-dialog"
-        main_iframe_found = False
-        
-        # Look for all iframes
-        iframes = driver.find_elements(By.TAG_NAME, "iframe")
-        print(f"Found {len(iframes)} iframes on the page")
-        
-        # Try to find the main review iframe
-        for iframe in iframes:
-            try:
-                iframe_src = iframe.get_attribute("src")
-                print(f"Checking iframe with src: {iframe_src}")
-                
-                if iframe_src and ("ReviewsService" in iframe_src or "writereview" in iframe_src):
-                    print(f"✅ Found main review iframe: {iframe_src}")
-                    driver.switch_to.frame(iframe)
-                    main_iframe_found = True
-                    
-                    # Save screenshot after switching to main iframe
-                    screenshot_path = os.path.join(debug_folder, "after_main_iframe_switch.png")
-                    driver.save_screenshot(screenshot_path)
-                    break
-            except Exception as e:
-                print(f"Error checking iframe: {str(e)}")
-        
-        if not main_iframe_found:
-            print("Could not find main review iframe, trying to continue anyway")
-        
-        # Now look for the nested iframe that contains the actual review form
-        nested_iframe_found = False
-        
-        # Check if there's a nested iframe with class="goog-reviews-write-widget"
-        try:
-            # First try to find the div with class="goog-reviews-write-widget-model"
-            widget_div = driver.find_element(By.CSS_SELECTOR, "div.goog-reviews-write-widget-model, div[jsmodel*='ReviewsWrite']")
-            print("✅ Found review widget div")
-            
-            # Now look for nested iframes
-            nested_iframes = driver.find_elements(By.TAG_NAME, "iframe")
-            print(f"Found {len(nested_iframes)} nested iframes")
-            
-            for iframe in nested_iframes:
-                try:
-                    iframe_src = iframe.get_attribute("src")
-                    print(f"Checking nested iframe with src: {iframe_src}")
-                    
-                    if iframe_src and ("bscframe" in iframe_src or "ReviewsService" in iframe_src):
-                        print(f"✅ Found nested review iframe: {iframe_src}")
-                        driver.switch_to.frame(iframe)
-                        nested_iframe_found = True
-                        
-                        # Save screenshot after switching to nested iframe
-                        screenshot_path = os.path.join(debug_folder, "after_nested_iframe_switch.png")
-                        driver.save_screenshot(screenshot_path)
-                        break
-                except Exception as e:
-                    print(f"Error checking nested iframe: {str(e)}")
-        except Exception as e:
-            print(f"Error finding widget div: {str(e)}")
-        
-        # If we couldn't find the nested iframe, try a different approach
-        if not nested_iframe_found:
-            print("Could not find nested review iframe, trying a different approach")
-            
-            # Switch back to default content
-            try:
-                driver.switch_to.default_content()
-                print("Switched back to main content")
-            except:
-                pass
-            
-            # Try to find all iframes and check each one
-            iframes = driver.find_elements(By.TAG_NAME, "iframe")
-            for iframe in iframes:
-                try:
-                    driver.switch_to.frame(iframe)
-                    
-                    # Check if this iframe contains a textarea
-                    textareas = driver.find_elements(By.TAG_NAME, "textarea")
-                    if textareas and any(ta.is_displayed() for ta in textareas):
-                        print("✅ Found iframe with textarea")
-                        nested_iframe_found = True
-                        
-                        # Save screenshot
-                        screenshot_path = os.path.join(debug_folder, "after_textarea_iframe_switch.png")
-                        driver.save_screenshot(screenshot_path)
-                        break
-                    
-                    # If not, switch back to default content
-                    driver.switch_to.default_content()
-                except:
-                    driver.switch_to.default_content()
-                    continue
-        
-        # Now try to find the textarea
-        # Based on the HTML, we're looking for a textarea with name="goog-reviews-write-widget"
-        # or a textarea inside a form with that name
-        try:
-            # Try specific selectors based on the HTML structure
-            textarea_selectors = [
-                "textarea[name='goog-reviews-write-widget']",
-                "form[name='goog-reviews-write-widget'] textarea",
-                "textarea[aria-label*='review']",
-                "textarea[aria-label*='Review']",
-                "textarea[placeholder*='review']",
-                "textarea[placeholder*='Review']",
-                "textarea"  # Last resort: any textarea
-            ]
-            
-            text_area = None
-            for selector in textarea_selectors:
-                try:
-                    print(f"Trying to find textarea with selector: {selector}")
-                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                    if elements:
-                        for element in elements:
-                            if element.is_displayed():
-                                text_area = element
-                                print(f"✅ Found textarea with selector: {selector}")
-                                break
-                    if text_area:
-                        break
-                except Exception as e:
-                    print(f"Error with selector {selector}: {str(e)}")
-            
-            # If we still can't find the textarea, try using JavaScript
-            if not text_area:
-                print("Trying JavaScript to find textarea...")
-                js_script = """
-                // Try to find any textarea
-                const textareas = document.getElementsByTagName('textarea');
-                if (textareas.length > 0) {
-                    for (let i = 0; i < textareas.length; i++) {
-                        if (textareas[i].offsetWidth > 0 && textareas[i].offsetHeight > 0) {
-                            return textareas[i];
-                        }
-                    }
-                }
-                
-                // Try to find by attribute
-                const reviewTextarea = document.querySelector('textarea[aria-label*="review"], textarea[placeholder*="review"]');
-                if (reviewTextarea) return reviewTextarea;
-                
-                // Try to find by form name
-                const form = document.querySelector('form[name="goog-reviews-write-widget"]');
-                if (form) {
-                    const formTextarea = form.querySelector('textarea');
-                    if (formTextarea) return formTextarea;
-                }
-                
-                return null;
-                """
-                text_area = driver.execute_script(js_script)
-                if text_area:
+                if textarea:
                     print("✅ Found textarea using JavaScript")
-            
-            # If we still can't find the textarea, try one more approach
-            if not text_area:
-                print("Trying to find textarea by tag name...")
+            except Exception as e:
+                print(f"Error finding textarea with JavaScript: {str(e)}")
+        
+        # If we still couldn't find the textarea, try to find it by tag name
+        if not textarea:
+            print("Trying to find textarea by tag name...")
+            try:
                 textareas = driver.find_elements(By.TAG_NAME, "textarea")
                 if textareas:
-                    for ta in textareas:
-                        if ta.is_displayed():
-                            text_area = ta
-                            print("✅ Found textarea by tag name")
-                            break
+                    textarea = textareas[0]
+                    print("✅ Found textarea by tag name")
+            except Exception as e:
+                print(f"Error finding textarea by tag name: {str(e)}")
+        
+        # If we still couldn't find the textarea, try switching to a different iframe
+        if not textarea:
+            # Switch back to main content
+            driver.switch_to.default_content()
+            print("Switched back to main content")
             
-            # If we found the textarea, try to enter text
-            if text_area:
-                # Clear any existing text
+            # Try each iframe
+            for iframe in iframes:
                 try:
-                    text_area.clear()
-                    print("Cleared existing text")
-                except Exception as e:
-                    print(f"Error clearing text: {str(e)}")
+                    driver.switch_to.frame(iframe)
+                    print(f"Checking iframe for textarea")
+                    
+                    # Take a screenshot
+                    screenshot_path = os.path.join(debug_folder, f"checking_iframe_for_textarea.png")
+                    driver.save_screenshot(screenshot_path)
+                    
+                    # Try to find textarea
+                    textareas = driver.find_elements(By.TAG_NAME, "textarea")
+                    if textareas:
+                        textarea = textareas[0]
+                        print("✅ Found iframe with textarea")
+                        break
+                    
+                    # Try contenteditable divs
+                    editables = driver.find_elements(By.CSS_SELECTOR, "[contenteditable='true']")
+                    if editables:
+                        textarea = editables[0]
+                        print("✅ Found iframe with contenteditable div")
+                        break
+                    
+                    # Switch back to main content
+                    driver.switch_to.default_content()
+                except:
+                    # Switch back to main content
+                    driver.switch_to.default_content()
+                    continue
+        
+        # If we still couldn't find the textarea, try clicking on form elements to reveal it
+        if not textarea:
+            # Switch back to main content
+            driver.switch_to.default_content()
+            print("Switched back to main content")
+            
+            # Try to find and click elements that might reveal the textarea
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, 
+                    "div.review-form, div.review-dialog, div[role='dialog'], div.modal-content")
                 
-                # Try to focus the element
-                try:
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", text_area)
-                    driver.execute_script("arguments[0].focus();", text_area)
-                    print("Focused on textarea")
-                    time.sleep(0.5)
-                except Exception as e:
-                    print(f"Error focusing: {str(e)}")
-                
-                # Try multiple approaches to enter text
-                success = False
-                
-                # Approach 1: Standard send_keys
-                try:
-                    text_area.send_keys(review_text)
-                    print("Entered text using standard send_keys")
-                    success = True
-                except Exception as e:
-                    print(f"Standard send_keys failed: {str(e)}")
-                
-                # Approach 2: JavaScript to set value
-                if not success:
+                for element in elements:
                     try:
-                        driver.execute_script("arguments[0].value = arguments[1];", text_area, review_text)
-                        print("Entered text using JavaScript value property")
-                        success = True
-                    except Exception as e:
-                        print(f"JavaScript value property failed: {str(e)}")
-                
-                # Approach 3: Character by character
-                if not success:
-                    try:
-                        text_area.click()
-                        for char in review_text:
-                            text_area.send_keys(char)
-                            time.sleep(0.05)
-                        print("Entered text character by character")
-                        success = True
-                    except Exception as e:
-                        print(f"Character by character input failed: {str(e)}")
-                
-                # Approach 4: Advanced JavaScript
-                if not success:
-                    try:
-                        js_script = """
-                        function setNativeValue(element, value) {
-                            const { set: valueSetter } = Object.getOwnPropertyDescriptor(element, 'value') || {};
-                            const prototype = Object.getPrototypeOf(element);
-                            const { set: prototypeValueSetter } = Object.getOwnPropertyDescriptor(prototype, 'value') || {};
-                            
-                            if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
-                                prototypeValueSetter.call(element, value);
-                            } else if (valueSetter) {
-                                valueSetter.call(element, value);
-                            } else {
-                                element.value = value;
-                            }
-                            
-                            // Dispatch input event
-                            element.dispatchEvent(new Event('input', { bubbles: true }));
-                        }
+                        element.click()
+                        print("Clicked on potential review form container")
                         
-                        setNativeValue(arguments[0], arguments[1]);
-                        return true;
-                        """
-                        driver.execute_script(js_script, text_area, review_text)
-                        print("Entered text using advanced JavaScript approach")
-                        success = True
-                    except Exception as e:
-                        print(f"Advanced JavaScript approach failed: {str(e)}")
+                        # Try to find textarea again
+                        textareas = driver.find_elements(By.TAG_NAME, "textarea")
+                        if textareas:
+                            textarea = textareas[0]
+                            print("✅ Found textarea after clicking container")
+                            break
+                    except:
+                        continue
+            except:
+                pass
+        
+        # If we still couldn't find the textarea, try using tab key to navigate to it
+        if not textarea:
+            print("Trying to use tab key to navigate to textarea...")
+            try:
+                # First, try to click somewhere in the form
+                try:
+                    form_elements = driver.find_elements(By.CSS_SELECTOR, 
+                        "div.review-form, div.review-dialog, div[role='dialog'], div.modal-content, form")
+                    
+                    if form_elements:
+                        form_elements[0].click()
+                        print("Clicked on form element")
+                except:
+                    # If we couldn't click a form element, click on the body
+                    driver.find_element(By.TAG_NAME, "body").click()
+                    print("Clicked on body")
                 
-                # Save screenshot after entering text
-                screenshot_path = os.path.join(debug_folder, "after_text_entry.png")
+                # Press tab key multiple times to try to reach the textarea
+                body = driver.find_element(By.TAG_NAME, "body")
+                for _ in range(10):
+                    body.send_keys(Keys.TAB)
+                    time.sleep(0.5)
+                    
+                    # Check if we've focused a textarea
+                    active_element = driver.execute_script("return document.activeElement;")
+                    tag_name = driver.execute_script("return arguments[0].tagName.toLowerCase();", active_element)
+                    
+                    if tag_name == "textarea":
+                        textarea = active_element
+                        print("✅ Found textarea using tab navigation")
+                        break
+                    
+                    if tag_name == "div" and driver.execute_script("return arguments[0].getAttribute('contenteditable') === 'true';", active_element):
+                        textarea = active_element
+                        print("✅ Found contenteditable div using tab navigation")
+                        break
+            except Exception as e:
+                print(f"Error using tab navigation: {str(e)}")
+        
+        # If we found the textarea, enter the review text
+        if textarea:
+            try:
+                # Clear any existing text
+                textarea.clear()
+                print("Cleared existing text")
+                
+                # Focus on the textarea
+                driver.execute_script("arguments[0].focus();", textarea)
+                print("Focused on textarea")
+                
+                # Try standard send_keys first
+                textarea.send_keys(review_text)
+                print("Entered text using standard send_keys")
+                
+                # Verify that the text was entered
+                entered_text = driver.execute_script("return arguments[0].value || arguments[0].textContent;", textarea)
+                if entered_text:
+                    print(f"✅ Verified text was entered: {entered_text}")
+                else:
+                    # If standard send_keys didn't work, try JavaScript
+                    print("Standard send_keys didn't work, trying JavaScript...")
+                    
+                    # Try setting value property
+                    driver.execute_script("arguments[0].value = arguments[1];", textarea, review_text)
+                    
+                    # Try setting textContent for contenteditable elements
+                    driver.execute_script("""
+                        if (arguments[0].getAttribute('contenteditable') === 'true') {
+                            arguments[0].textContent = arguments[1];
+                        }
+                    """, textarea, review_text)
+                    
+                    # Dispatch input event
+                    driver.execute_script("""
+                        var event = new Event('input', {
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        arguments[0].dispatchEvent(event);
+                    """, textarea)
+                    
+                    print("Entered text using JavaScript")
+                
+                # Take a screenshot after entering text
+                screenshot_path = os.path.join(debug_folder, "after_entering_text.png")
                 driver.save_screenshot(screenshot_path)
                 
-                # Verify text was entered
-                try:
-                    entered_text = driver.execute_script("return arguments[0].value;", text_area)
-                    if entered_text and len(entered_text) > 0:
-                        print(f"✅ Verified text was entered: {entered_text}")
-                    else:
-                        print("⚠️ Text verification failed - textarea appears empty")
-                except Exception as e:
-                    print(f"Error verifying text: {str(e)}")
+                print(f"✅ Entered review text: {review_text}")
+                return True
+            except Exception as e:
+                print(f"Error entering review text: {str(e)}")
                 
-                if success:
-                    print(f"✅ Entered review text: {review_text}")
-                    return True
-                else:
-                    print("❌ Failed to enter review text using all approaches")
-                    return False
-            else:
-                print("❌ Could not find textarea")
+                # Take a screenshot of the error
+                screenshot_path = os.path.join(debug_folder, "text_entry_error.png")
+                driver.save_screenshot(screenshot_path)
+                
                 return False
-        except Exception as e:
-            print(f"❌ Error finding or interacting with textarea: {str(e)}")
+        else:
+            print("❌ Could not find textarea")
+            
+            # Take a screenshot of the failure
+            screenshot_path = os.path.join(debug_folder, "textarea_not_found.png")
+            driver.save_screenshot(screenshot_path)
+            
             return False
     except Exception as e:
         print(f"❌ Error entering review text: {str(e)}")
-        # Save screenshot
-        screenshot_path = os.path.join(debug_folder, "text_entry_error.png")
+        
+        # Take a screenshot of the error
+        screenshot_path = os.path.join(debug_folder, "review_text_error.png")
         driver.save_screenshot(screenshot_path)
+        
         return False
 
 def submit_review(driver, debug_folder):
-    """Submit the review by clicking the submit button"""
+    """Submit the review"""
     try:
-        # Save screenshot before looking for submit button
-        screenshot_path = os.path.join(debug_folder, "before_finding_submit.png")
+        print("Submitting review...")
+        
+        # Take a screenshot before submission
+        screenshot_path = os.path.join(debug_folder, "before_submit.png")
         driver.save_screenshot(screenshot_path)
         
-        # First switch back to the main content to ensure we're starting fresh
-        try:
-            driver.switch_to.default_content()
-            print("Switched to main content for submit button")
-        except:
-            pass
-        
-        # Store the current URL to check if it changes after submission
+        # Store the initial URL for comparison later
         initial_url = driver.current_url
         print(f"Initial URL before submission: {initial_url}")
         
-        # Find the same iframe that was used for star rating
-        main_iframe_found = False
+        # Switch to main content for submit button
+        driver.switch_to.default_content()
+        print("Switched to main content for submit button")
+        
+        # Find all iframes on the page
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         print(f"Found {len(iframes)} iframes on the page")
         
-        # Try to find the main review iframe
+        # First, check if we're in a review iframe
+        review_iframe = None
         for iframe in iframes:
             try:
-                iframe_src = iframe.get_attribute("src")
-                print(f"Checking iframe with src: {iframe_src}")
-                
-                if iframe_src and ("ReviewsService" in iframe_src or "writereview" in iframe_src):
+                iframe_src = iframe.get_attribute("src") or ""
+                if "ReviewsService" in iframe_src or "writereview" in iframe_src or "review" in iframe_src:
+                    review_iframe = iframe
                     print(f"✅ Found main review iframe: {iframe_src}")
-                    driver.switch_to.frame(iframe)
-                    main_iframe_found = True
-                    
-                    # Save screenshot after switching to main iframe
-                    screenshot_path = os.path.join(debug_folder, "after_main_iframe_switch_submit.png")
-                    driver.save_screenshot(screenshot_path)
                     break
-            except Exception as e:
-                print(f"Error checking iframe: {str(e)}")
+            except:
+                continue
         
-        if not main_iframe_found:
-            print("Could not find main review iframe, trying to continue anyway")
-            return False
+        # Switch to the review iframe if found
+        if review_iframe:
+            driver.switch_to.frame(review_iframe)
+            print("Switched to review iframe for submit button")
+            
+            # Take a screenshot after switching to iframe
+            screenshot_path = os.path.join(debug_folder, "inside_review_iframe_submit.png")
+            driver.save_screenshot(screenshot_path)
         
-        # Now we're in the same iframe as the star rating, let's find the submit button
+        # Look for submit button in the review iframe
         print("Looking for submit button in the review iframe...")
         
-        # First, try to find the button by its text content
-        try:
-            # Use JavaScript to find the button by text content
-            js_script = """
-            // Find all buttons with text 'Post' or 'Submit'
-            const buttons = Array.from(document.querySelectorAll('button, div[role="button"]'));
-            const submitButton = buttons.find(button => {
-                const text = button.textContent.toLowerCase().trim();
-                return text === 'post' || text === 'submit' || text === 'publish' || text === 'share';
-            });
-            return submitButton;
-            """
-            submit_button = driver.execute_script(js_script)
-            if submit_button:
-                print("✅ Found submit button by text content")
-        except Exception as e:
-            print(f"Error finding button by text content: {str(e)}")
-            submit_button = None
+        # Try to find the submit button using various selectors
+        submit_button = None
+        submit_button_selectors = [
+            "button[jsname='LgbsSe']",
+            "button.goog-buttonset-default",
+            "button.submit-button",
+            "button[type='submit']",
+            "button.VfPpkd-LgbsSe",
+            "button.mdc-button",
+            "button.gmat-mdc-button",
+            "button.gm-submit-button",
+            "button.g-button",
+            "input[type='submit']"
+        ]
         
-        # If not found by text, try specific selectors
-        if not submit_button:
-            submit_selectors = [
-                "button[jsaction*='submit']",
-                "button[jsaction*='post']",
-                "button[jscontroller]",
-                "button.submit-button",
-                "div[role='button'][jsaction*='submit']",
-                "div[role='button'][jsaction*='post']",
-                "div[role='button'].submit-button",
-                "button:not([disabled])"
-            ]
-            
-            for selector in submit_selectors:
-                try:
-                    print(f"Trying to find submit button with selector: {selector}")
-                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                    if elements:
-                        for element in elements:
-                            if element.is_displayed():
-                                submit_button = element
-                                print(f"✅ Found submit button with selector: {selector}")
-                                break
-                    if submit_button:
-                        break
-                except Exception as e:
-                    print(f"Selector {selector} failed: {str(e)}")
-        
-        # If still not found, try a more aggressive approach
-        if not submit_button:
-            print("Trying a more aggressive approach to find the submit button...")
-            js_script = """
-            // Find all buttons and clickable elements
-            const allButtons = Array.from(document.querySelectorAll('button, div[role="button"], span[role="button"], a[role="button"]'));
-            
-            // Filter to only visible elements
-            const visibleButtons = allButtons.filter(el => {
-                const style = window.getComputedStyle(el);
-                return el.offsetWidth > 0 && 
-                       el.offsetHeight > 0 && 
-                       style.display !== 'none' && 
-                       style.visibility !== 'hidden' && 
-                       style.opacity !== '0';
-            });
-            
-            // Sort by position (bottom buttons are more likely to be submit buttons)
-            visibleButtons.sort((a, b) => {
-                const rectA = a.getBoundingClientRect();
-                const rectB = b.getBoundingClientRect();
-                return rectB.top - rectA.top;  // Bottom-most first
-            });
-            
-            // Return the first visible button (most likely to be the submit button)
-            return visibleButtons.length > 0 ? visibleButtons[0] : null;
-            """
-            submit_button = driver.execute_script(js_script)
-            if submit_button:
-                print("✅ Found submit button using aggressive JavaScript approach")
-        
-        if not submit_button:
-            print("❌ Could not find submit button in the review iframe")
-            return False
-        
-        # Save screenshot before clicking
-        screenshot_path = os.path.join(debug_folder, "before_submit_click.png")
-        driver.save_screenshot(screenshot_path)
-        
-        # Get button details for debugging
-        try:
-            button_tag = driver.execute_script("return arguments[0].tagName;", submit_button)
-            button_classes = driver.execute_script("return arguments[0].className;", submit_button)
-            button_id = driver.execute_script("return arguments[0].id;", submit_button)
-            button_text = driver.execute_script("return arguments[0].textContent.trim();", submit_button)
-            button_attrs = driver.execute_script("""
-                const attrs = {};
-                for (const attr of arguments[0].attributes) {
-                    attrs[attr.name] = attr.value;
-                }
-                return JSON.stringify(attrs);
-            """, submit_button)
-            
-            print(f"Button details - Tag: {button_tag}, Classes: {button_classes}, ID: {button_id}, Text: '{button_text}'")
-            print(f"Button attributes: {button_attrs}")
-        except Exception as e:
-            print(f"Error getting button details: {str(e)}")
-        
-        # Scroll to the button to make sure it's in view
-        driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", submit_button)
-        time.sleep(1)
-        
-        # Try to remove any overlays that might be blocking the button
-        driver.execute_script("""
-            // Remove any overlays or modals that might be blocking clicks
-            const overlays = Array.from(document.querySelectorAll('div[aria-hidden="true"], div.overlay, div.modal-bg, div.backdrop'));
-            for (const overlay of overlays) {
-                overlay.style.display = 'none';
-                overlay.style.visibility = 'hidden';
-                overlay.style.opacity = '0';
-                overlay.style.pointerEvents = 'none';
-            }
-        """)
-        
-        # Try multiple approaches to click the button
-        click_success = False
-        
-        # Approach 1: Direct JavaScript click with preparation
-        try:
-            js_script = """
-            // Prepare the button for clicking
-            const button = arguments[0];
-            
-            // Make sure the button is visible and enabled
-            button.style.opacity = '1';
-            button.style.visibility = 'visible';
-            button.style.display = 'block';
-            button.disabled = false;
-            button.removeAttribute('disabled');
-            button.removeAttribute('aria-disabled');
-            
-            // Scroll to ensure it's in view
-            button.scrollIntoView({block: 'center', behavior: 'smooth'});
-            
-            // Click the button
-            button.click();
-            
-            return true;
-            """
-            driver.execute_script(js_script, submit_button)
-            print("Clicked submit button using direct JavaScript click")
-            click_success = True
-        except Exception as e:
-            print(f"Direct JavaScript click failed: {str(e)}")
-        
-        # Approach 2: Event dispatching
-        if not click_success:
+        for selector in submit_button_selectors:
             try:
-                js_script = """
-                // Create and dispatch a mouse event
-                const event = new MouseEvent('click', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                });
-                arguments[0].dispatchEvent(event);
-                return true;
-                """
-                driver.execute_script(js_script, submit_button)
-                print("Clicked submit button using event dispatching")
-                click_success = True
+                buttons = driver.find_elements(By.CSS_SELECTOR, selector)
+                for button in buttons:
+                    try:
+                        button_text = button.text.lower()
+                        if "post" in button_text or "submit" in button_text or "publish" in button_text or "share" in button_text:
+                            submit_button = button
+                            print(f"✅ Found submit button with selector: {selector}, text: {button.text}")
+                            break
+                    except:
+                        continue
+                
+                if submit_button:
+                    break
+            except:
+                continue
+        
+        # If we couldn't find the submit button with selectors, try JavaScript
+        if not submit_button:
+            print("Trying to find submit button by text content...")
+            try:
+                submit_button = driver.execute_script("""
+                    // Find buttons by text content
+                    var buttons = document.querySelectorAll('button, input[type="submit"], div[role="button"]');
+                    for (var i = 0; i < buttons.length; i++) {
+                        var button = buttons[i];
+                        var text = button.textContent.toLowerCase();
+                        if (text.includes('post') || text.includes('submit') || text.includes('publish') || text.includes('share')) {
+                            return button;
+                        }
+                    }
+                    
+                    // If no button found by text, look for buttons in the bottom section of the form
+                    var forms = document.querySelectorAll('form, div[role="dialog"], div.review-dialog, div.modal-content');
+                    if (forms.length > 0) {
+                        var form = forms[0];
+                        var formRect = form.getBoundingClientRect();
+                        var formBottom = formRect.bottom;
+                        var formHeight = formRect.height;
+                        
+                        // Look for buttons in the bottom 20% of the form
+                        var bottomButtons = [];
+                        buttons.forEach(function(button) {
+                            var rect = button.getBoundingClientRect();
+                            if (rect.top > formBottom - (formHeight * 0.2)) {
+                                bottomButtons.push(button);
+                            }
+                        });
+                        
+                        // Return the rightmost button (usually the submit button)
+                        if (bottomButtons.length > 0) {
+                            bottomButtons.sort(function(a, b) {
+                                return b.getBoundingClientRect().right - a.getBoundingClientRect().right;
+                            });
+                            return bottomButtons[0];
+                        }
+                    }
+                    
+                    // Last resort: find any button that looks like a primary action
+                    var primaryButtons = document.querySelectorAll('button.primary, button.submit, button[type="submit"], button.mdc-button--raised, button.mdc-button--unelevated');
+                    if (primaryButtons.length > 0) {
+                        return primaryButtons[0];
+                    }
+                    
+                    return null;
+                """)
+                
+                if submit_button:
+                    print("✅ Found submit button by text content")
+                    
+                    # Get button details for debugging
+                    button_tag = driver.execute_script("return arguments[0].tagName;", submit_button)
+                    button_classes = driver.execute_script("return arguments[0].className;", submit_button)
+                    button_id = driver.execute_script("return arguments[0].id;", submit_button)
+                    button_text = driver.execute_script("return arguments[0].textContent;", submit_button)
+                    
+                    print(f"Button details - Tag: {button_tag}, Classes: {button_classes}, ID: {button_id}, Text: '{button_text}'")
+                    
+                    # Get button attributes for debugging
+                    button_attributes = driver.execute_script("""
+                        var attributes = {};
+                        var attrs = arguments[0].attributes;
+                        for (var i = 0; i < attrs.length; i++) {
+                            attributes[attrs[i].name] = attrs[i].value;
+                        }
+                        return JSON.stringify(attributes);
+                    """, submit_button)
+                    
+                    print(f"Button attributes: {button_attributes}")
             except Exception as e:
-                print(f"Event dispatching failed: {str(e)}")
+                print(f"Error finding submit button with JavaScript: {str(e)}")
         
-        # Approach 3: Try to trigger the jsaction directly
-        if not click_success:
+        # If we found the submit button, click it
+        if submit_button:
+            # Take a screenshot before clicking
+            screenshot_path = os.path.join(debug_folder, "before_clicking_submit.png")
+            driver.save_screenshot(screenshot_path)
+            
+            # Store the button text for verification later
             try:
-                jsaction = driver.execute_script("return arguments[0].getAttribute('jsaction');", submit_button)
-                if jsaction:
-                    print(f"Found jsaction: {jsaction}")
-                    # Extract the action name
-                    actions = jsaction.split(';')
-                    for action in actions:
-                        if ':' in action:
-                            event_type, action_name = action.split(':')
-                            js_script = f"""
-                            // Create a custom event to trigger the jsaction
-                            const event = new CustomEvent('{event_type}', {{
+                button_text_before = driver.execute_script("return arguments[0].textContent;", submit_button)
+                print(f"Button text before clicking: '{button_text_before}'")
+            except:
+                button_text_before = None
+            
+            # Try standard click first
+            try:
+                # Scroll to the button to make sure it's in view
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", submit_button)
+                time.sleep(0.5)
+                
+                # Try to remove any overlays that might be blocking the button
+                driver.execute_script("""
+                    // Remove any overlays or modals that might be blocking clicks
+                    var overlays = document.querySelectorAll('div[aria-hidden="true"], div.overlay, div.modal-bg, div.backdrop');
+                    for (var i = 0; i < overlays.length; i++) {
+                        var overlay = overlays[i];
+                        overlay.style.display = 'none';
+                        overlay.style.visibility = 'hidden';
+                        overlay.style.opacity = '0';
+                        overlay.style.pointerEvents = 'none';
+                    }
+                """)
+                
+                # Click the button
+                submit_button.click()
+                print("Clicked submit button using standard click")
+            except Exception as e:
+                print(f"Standard click failed: {str(e)}")
+                
+                # Try JavaScript click as fallback
+                try:
+                    driver.execute_script("arguments[0].click();", submit_button)
+                    print("Clicked submit button using direct JavaScript click")
+                except Exception as e2:
+                    print(f"JavaScript click failed: {str(e2)}")
+                    
+                    # Try another JavaScript approach
+                    try:
+                        driver.execute_script("""
+                            var event = new MouseEvent('click', {
+                                view: window,
                                 bubbles: true,
                                 cancelable: true
-                            }});
+                            });
                             arguments[0].dispatchEvent(event);
-                            return true;
-                            """
-                            driver.execute_script(js_script, submit_button)
-                            print(f"Triggered jsaction event: {event_type}")
-                            click_success = True
+                        """, submit_button)
+                        print("Clicked submit button using JavaScript event")
+                    except Exception as e3:
+                        print(f"JavaScript event click failed: {str(e3)}")
+                        return False
+            
+            # Wait for submission to complete
+            print("Waiting for submission to complete...")
+            time.sleep(3)
+            
+            # Take a screenshot after clicking
+            screenshot_path = os.path.join(debug_folder, "after_clicking_submit.png")
+            driver.save_screenshot(screenshot_path)
+            
+            # Check if URL changed (indication of successful submission)
+            current_url = driver.current_url
+            print(f"Current URL after submission: {current_url}")
+            
+            url_changed = current_url != initial_url
+            if url_changed:
+                print("✅ URL changed after submission, likely successful")
+            
+            # Check if button state changed
+            button_state_changed = False
+            try:
+                button_text_after = driver.execute_script("return arguments[0].textContent;", submit_button)
+                print(f"Button text after clicking: '{button_text_after}'")
+                
+                if button_text_before and button_text_after and button_text_before != button_text_after:
+                    print("✅ Button text changed after clicking, likely successful")
+                    button_state_changed = True
+                
+                # Check if button is disabled
+                button_disabled = driver.execute_script("return arguments[0].disabled === true || arguments[0].getAttribute('aria-disabled') === 'true';", submit_button)
+                if button_disabled:
+                    print("✅ Button is now disabled, likely successful")
+                    button_state_changed = True
+            except Exception as e:
+                print(f"Error checking button state: {str(e)}")
+                # If we get a stale element reference, the page has changed, which is good
+                if "stale element reference" in str(e):
+                    print("✅ Button is now stale, page has changed, likely successful")
+                    button_state_changed = True
+            
+            # Check for confirmation elements
+            confirmation_found = False
+            try:
+                # Switch back to default content
+                driver.switch_to.default_content()
+                
+                # Look for confirmation messages or elements
+                confirmation_elements = driver.find_elements(By.CSS_SELECTOR, 
+                    "div.confirmation-message, div.success-message, div.thank-you-message, div[role='alert']")
+                
+                for element in confirmation_elements:
+                    try:
+                        element_text = element.text.lower()
+                        if "thank" in element_text or "success" in element_text or "submitted" in element_text:
+                            print(f"✅ Found confirmation message: {element_text}")
+                            confirmation_found = True
                             break
-            except Exception as e:
-                print(f"jsaction trigger failed: {str(e)}")
-        
-        # Approach 4: Standard Selenium click
-        if not click_success:
+                    except:
+                        continue
+            except:
+                pass
+            
+            # Check if review form elements are no longer visible
+            form_elements_gone = False
             try:
-                submit_button.click()
-                print("Clicked submit button using standard Selenium click")
-                click_success = True
-            except Exception as e:
-                print(f"Standard Selenium click failed: {str(e)}")
-        
-        # Approach 5: Try to submit the form directly
-        if not click_success:
-            try:
-                js_script = """
-                // Try to find the form and submit it directly
-                const form = document.querySelector('form');
-                if (form) {
-                    form.submit();
-                    return true;
-                }
-                return false;
-                """
-                form_submitted = driver.execute_script(js_script)
-                if form_submitted:
-                    print("Submitted form directly using JavaScript")
-                    click_success = True
-            except Exception as e:
-                print(f"Form submission failed: {str(e)}")
-        
-        if not click_success:
-            print("❌ All click approaches failed")
-            return False
-        
-        # Save screenshot after clicking
-        screenshot_path = os.path.join(debug_folder, "after_submit_click.png")
-        driver.save_screenshot(screenshot_path)
-        
-        # Wait for submission to complete
-        print("Waiting for submission to complete...")
-        time.sleep(5)
-        
-        # Check if the URL has changed
-        current_url = driver.current_url
-        print(f"Current URL after submission: {current_url}")
-        
-        url_changed = current_url != initial_url
-        if url_changed:
-            print("✅ URL changed after submission, likely successful")
-            return True
-        
-        # Check if the button is still present and clickable
-        try:
-            button_still_present = driver.execute_script("""
-                const button = arguments[0];
-                return document.body.contains(button) && 
-                       button.offsetWidth > 0 && 
-                       button.offsetHeight > 0;
-            """, submit_button)
+                # Switch back to default content
+                driver.switch_to.default_content()
+                
+                # Try to find the review form elements
+                star_elements = driver.find_elements(By.CSS_SELECTOR, "div[aria-label*='star'], span[aria-label*='star']")
+                textarea_elements = driver.find_elements(By.TAG_NAME, "textarea")
+                
+                if len(star_elements) == 0 and len(textarea_elements) == 0:
+                    print("✅ Review form elements are no longer visible, submission likely successful")
+                    form_elements_gone = True
+            except:
+                pass
             
-            if not button_still_present:
-                print("✅ Submit button is no longer present, submission likely successful")
-                return True
+            # Determine if submission was successful based on all checks
+            submission_successful = url_changed or button_state_changed or confirmation_found or form_elements_gone
             
-            # Check if the button is now disabled
-            button_disabled = driver.execute_script("""
-                const button = arguments[0];
-                return button.disabled || 
-                       button.getAttribute('disabled') === 'true' || 
-                       button.getAttribute('aria-disabled') === 'true' ||
-                       button.classList.contains('disabled') ||
-                       window.getComputedStyle(button).opacity < 0.5;
-            """, submit_button)
-            
-            if button_disabled:
-                print("✅ Submit button is now disabled, submission likely successful")
-                return True
-        except Exception as e:
-            print(f"Error checking button state: {str(e)}")
-        
-        # Check if the review form elements are still present
-        try:
-            # Check for star rating elements
-            star_elements = driver.find_elements(By.CSS_SELECTOR, "div[aria-label*='star'], span[aria-label*='star']")
-            star_elements_visible = any(el.is_displayed() for el in star_elements) if star_elements else False
-            
-            # Check for review text area
-            text_area = driver.find_elements(By.CSS_SELECTOR, "textarea[aria-label*='review'], div[contenteditable='true']")
-            text_area_visible = any(el.is_displayed() for el in text_area) if text_area else False
-            
-            if not star_elements_visible and not text_area_visible:
-                print("✅ Review form elements are no longer visible, submission likely successful")
+            if submission_successful:
+                print("✅ Review submission appears to be successful")
                 return True
             else:
-                if star_elements_visible:
-                    print("⚠️ Star rating elements still visible")
-                if text_area_visible:
-                    print("⚠️ Review text area still visible")
-        except Exception as e:
-            print(f"Error checking form elements: {str(e)}")
-        
-        # Take a final screenshot
-        screenshot_path = os.path.join(debug_folder, "final_state_after_submit.png")
-        driver.save_screenshot(screenshot_path)
-        
-        # Even if we couldn't verify success, assume it worked
-        print("⚠️ Could not definitively verify submission success")
-        print("⚠️ However, the review was likely submitted successfully even though verification failed")
-        print("⚠️ This is common with Google's review system which doesn't always provide clear feedback")
-        return True
+                print("❌ Could not verify successful submission")
+                return False
+        else:
+            print("❌ Could not find submit button")
+            return False
     except Exception as e:
         print(f"❌ Error submitting review: {str(e)}")
-        # Save screenshot
+        
+        # Take a screenshot of the error
         screenshot_path = os.path.join(debug_folder, "submit_error.png")
         driver.save_screenshot(screenshot_path)
+        
         return False
 
 def find_and_click_review_button(driver, debug_folder):
@@ -1444,7 +1637,6 @@ def find_and_click_review_button(driver, debug_folder):
                 print("✅ Clicked review button using JavaScript")
             except:
                 print("❌ JavaScript click failed")
-                return False
             
             # Wait for the review form to load
             time.sleep(3)

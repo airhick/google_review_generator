@@ -11,9 +11,23 @@
 # NOTE: Your login session will be saved in the chrome_profile directory,
 # so you only need to log in once. Subsequent runs will reuse the saved session.
 
-accounts:
-  - username: your_email@gmail.com
-    password: your_password_here
-# Add more accounts as needed:
-# - username: another_email@gmail.com
-#   password: another_password_here 
+- username: ambreboulevard@gmail.com
+  password: Nike667667
+- username: cireghost2@gmail.com
+  password: Nike667667
+- username: cluardaanthony@gmail.com
+  password: Nike667667
+- username: fabiolanchin@gmail.com
+  password: Nike667667
+- username: marchoarsenio@gmail.com
+  password: Nike667667
+- username: mounicharmarcial@gmail.com
+  password: Nike667667
+- username: pullandbeartonivanchel@gmail.com
+  password: Nike667667
+- username: sandersnaomais@gmail.com
+  password: Nike667667
+- username: retailleauedward@gmail.com
+  password: Nike667667
+- username: lindastephania82@gmail.com
+  password: Nike667667 

@@ -1,0 +1,10 @@
+[2025-03-06 15:34:02] [1/4] Starting Direct Review URL Generator
+[2025-03-06 15:34:02] [2/4] Business URL: https://www.google.com/maps/place/P%C3%A2tisserie+-+Chocolaterie+S%C3%A9bastien+Brocard/@46.2439802,6.0248647,946m/data=!3m1!1e3!4m6!3m5!1s0x478c6280a3d30b85:0x3d7304c7dd072021!8m2!3d46.2422994!4d6.0193916!16s%2Fg%2F1tq6cd75?entry=ttu&g_ep=EgoyMDI1MDMwNC4wIKXMDSoASAFQAw%3D%3D
+[2025-03-06 15:34:02] [3/4] Extracted business name: P%C3%A2tisserie - Chocolaterie S%C3%A9bastien Brocard
+[2025-03-06 15:34:02] Searching for place ID for business: P%C3%A2tisserie - Chocolaterie S%C3%A9bastien Brocard
+[2025-03-06 15:34:03] Found place ID: ChIJhQvTo4BijEcRISAH3ccEcz0
+[2025-03-06 15:34:03] Place name: Bakery - Chocolaterie Sébastien Brocard
+[2025-03-06 15:34:03] Address: 9 Bis Rue de Lyon, 01630 Saint-Genis-Pouilly, Frankreich
+[2025-03-06 15:34:03] Generating direct review URL for place ID: ChIJhQvTo4BijEcRISAH3ccEcz0
+[2025-03-06 15:34:03] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJhQvTo4BijEcRISAH3ccEcz0
+[2025-03-06 15:34:03] Direct review URL saved to direct_review_url.txt

@@ -1,0 +1,10 @@
+[2025-03-06 15:25:33] [1/4] Starting Direct Review URL Generator
+[2025-03-06 15:25:33] [2/4] Business URL: https://www.google.com/maps/place/L'Usine/@46.1897728,6.1271355,7737m/data=!3m1!1e3!4m6!3m5!1s0x478c64d6b7e9a0eb:0xe420b9c2965c35b3!8m2!3d46.203971!4d6.1360179!16s%2Fg%2F1226mp86?entry=ttu&g_ep=EgoyMDI1MDMwNC4wIKXMDSoASAFQAw%3D%3D
+[2025-03-06 15:25:33] [3/4] Extracted business name: L'Usine
+[2025-03-06 15:25:33] Searching for place ID for business: L'Usine
+[2025-03-06 15:25:33] Found place ID: ChIJ66Dpt9ZkjEcRszVclsK5IOQ
+[2025-03-06 15:25:33] Place name: L'Usine
+[2025-03-06 15:25:33] Address: Pl. des Volontaires 4, 1204 Genève, Schweiz
+[2025-03-06 15:25:33] Generating direct review URL for place ID: ChIJ66Dpt9ZkjEcRszVclsK5IOQ
+[2025-03-06 15:25:33] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJ66Dpt9ZkjEcRszVclsK5IOQ
+[2025-03-06 15:25:33] Direct review URL saved to direct_review_url.txt

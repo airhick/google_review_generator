@@ -1,11 +1,50 @@
-profiles:
-  - name: default_profile
-    path: chrome_profile
-    account: your_email@gmail.com
-    created_at: '2023-03-06 10:00:00'
-
 batch_settings:
-  delay_between_reviews: 30
-  randomize_delay: true
-  max_random_delay: 60
-  randomize_order: true 
+  delay_between_reviews: 0
+  max_random_delay: 0
+  randomize_delay: false
+  randomize_order: false
+profiles:
+- account: lindastephania82@gmail.com
+  created_at: '2023-03-06 10:00:00'
+  name: default_profile
+  path: chrome_profile
+- account: ambreboulevard@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_ambreboulevard
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_ambreboulevard
+- account: cireghost2@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_cireghost2
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_cireghost2
+- account: cluardaanthony@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_cluardaanthony
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_cluardaanthony
+- account: fabiolanchin@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_fabiolanchin
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_fabiolanchin
+- account: marchoarsenio@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_marchoarsenio
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_marchoarsenio
+- account: mounicharmarcial@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_mounicharmarcial
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_mounicharmarcial
+- account: pullandbeartonivanchel@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_pullandbeartonivanchel
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_pullandbeartonivanchel
+- account: sandersnaomais@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_sandersnaomais
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_sandersnaomais
+- account: retailleauedward@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_retailleauedward
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_retailleauedward
+- account: lindastephania82@gmail.com
+  created_at: '2025-03-06 12:19:42'
+  name: profile_lindastephania82
+  path: /Users/Eric.AELLEN/Documents/code/projets/GOOGLE REVIEWS GENERATOR/chrome_profiles/profile_lindastephania82

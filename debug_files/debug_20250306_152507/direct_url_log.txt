@@ -1,0 +1,10 @@
+[2025-03-06 15:25:07] [1/4] Starting Direct Review URL Generator
+[2025-03-06 15:25:07] [2/4] Business URL: https://www.google.com/maps/place/Le+Relais+de+l'Entrec%C3%B4te/@46.200488,6.1546484,967m/data=!3m1!1e3!4m14!1m7!3m6!1s0x478c6599e5dc6701:0x3d7c75ddf510d18e!2sLancer+de+hache+Gen%C3%A8ve+-+Axvetik!8m2!3d46.2004843!4d6.1572233!16s%2Fg%2F11ptpkvfbb!3m5!1s0x41aa6e2a42028297:0xcff3081e29c9571c!8m2!3d46.2025278!4d6.1535187!16s%2Fg%2F11b5qs9qy5?entry=ttu&g_ep=EgoyMDI1MDMwNC4wIKXMDSoASAFQAw%3D%3D
+[2025-03-06 15:25:07] [3/4] Extracted business name: Le Relais de l'Entrec%C3%B4te
+[2025-03-06 15:25:07] Searching for place ID for business: Le Relais de l'Entrec%C3%B4te
+[2025-03-06 15:25:07] Found place ID: ChIJl4ICQipuqkERHFfJKR4I888
+[2025-03-06 15:25:07] Place name: Relais de l'Entrecôte Genève
+[2025-03-06 15:25:07] Address: Rue Pierre-Fatio 6, 1204 Genève, Schweiz
+[2025-03-06 15:25:07] Generating direct review URL for place ID: ChIJl4ICQipuqkERHFfJKR4I888
+[2025-03-06 15:25:07] [4/4] Direct review URL: https://search.google.com/local/writereview?placeid=ChIJl4ICQipuqkERHFfJKR4I888
+[2025-03-06 15:25:07] Direct review URL saved to direct_review_url.txt
